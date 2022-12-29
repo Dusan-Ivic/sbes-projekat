@@ -35,7 +35,7 @@ namespace ServiceApp
 
         public void Log(Message message)
         {
-            Console.WriteLine($"{message.Sender} -> {message.Receiver}: {message.Text}");
+            Console.WriteLine($"[{message.Timestamp}] {message.Sender} -> {message.Receiver}: {message.Text}");
         }
     }
 }

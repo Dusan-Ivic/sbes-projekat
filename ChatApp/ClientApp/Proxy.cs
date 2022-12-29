@@ -104,6 +104,7 @@ namespace ClientApp
         {
             try
             {
+                message.Timestamp = DateTime.Now;
                 factory.Send(message);
                 Messages.sent.Add(message);
             }
