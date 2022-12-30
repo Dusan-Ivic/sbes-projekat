@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
+using System.ServiceModel.Channels;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,6 +19,11 @@ namespace ClientApp
 
             // Autentifikacija putem Windows autentifikacionog protokola (za komunikaciju sa serverom)
             // TODO - Dodati binding-e iz Vezbe 1
+
+            serviceBinding.Security.Mode = SecurityMode.Transport;
+            serviceBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
+            serviceBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
+
 
             using (ServiceProxy serviceProxy = new ServiceProxy(serviceBinding, new EndpointAddress(new Uri(serviceAddress))))
             {
@@ -88,7 +94,7 @@ namespace ClientApp
                             Console.Write("Message: ");
                             string text = Console.ReadLine();
 
-                            Message message = new Message()
+                            Common.Message message = new Common.Message()
                             {
                                 Sender = username,
                                 Text = text,
@@ -108,14 +114,14 @@ namespace ClientApp
                             break;
                         case "3":
                             Console.WriteLine("Received messages:");
-                            foreach (Message m in Messages.received)
+                            foreach (Common.Message m in Messages.received)
                             {
                                 Console.WriteLine($"From {m.Sender}: {m.Text}");
                             }
                             break;
                         case "4":
                             Console.WriteLine("Sent messages:");
-                            foreach (Message m in Messages.sent)
+                            foreach (Common.Message m in Messages.sent)
                             {
                                 Console.WriteLine($"To: {m.Receiver}: {m.Text}");
                             }

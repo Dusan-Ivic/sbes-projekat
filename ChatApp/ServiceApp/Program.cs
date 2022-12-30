@@ -15,6 +15,10 @@ namespace ServiceApp
             string address = "net.tcp://localhost:5000/Chat";
             NetTcpBinding binding = new NetTcpBinding();
 
+            binding.Security.Mode = SecurityMode.Transport;
+            binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
+            binding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
+
             ServiceHost host = new ServiceHost(typeof(Service));
             host.AddServiceEndpoint(typeof(IService), binding, address);
 
