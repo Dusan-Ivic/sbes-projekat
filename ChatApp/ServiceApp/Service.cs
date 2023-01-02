@@ -2,6 +2,7 @@
 using Contracts;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -36,6 +37,9 @@ namespace ServiceApp
         public void Log(Message message)
         {
             Console.WriteLine($"[{message.Timestamp}] {message.Sender} -> {message.Receiver}: {message.Text}");
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"messages.txt");
+            DateTime time = DateTime.Now;
+            File.WriteAllText(path, $"{message.Sender} -> {message.Receiver}  \t Message: {message.Text} \t Time:{time}");
         }
     }
 }
