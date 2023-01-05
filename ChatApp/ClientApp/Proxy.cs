@@ -2,6 +2,7 @@
 using Contracts;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
@@ -78,6 +79,32 @@ namespace ClientApp
                 Console.WriteLine("Error: {0}", e.Message);
             }
         }
+        public  void Audit(string SourceName, string LogName, EventLog customLog)
+        {
+            try
+            {
+                if (!EventLog.SourceExists(SourceName))
+                {
+                    EventLog.CreateEventSource(SourceName, LogName);
+                }
+                customLog = new EventLog();
+                customLog.Source = SourceName;
+                customLog.WriteEntry("An entry to the Application event log.", System.Diagnostics.EventLogEntryType.SuccessAudit);
+            }
+            catch (Exception e)
+            {
+                customLog = null;
+                Console.WriteLine("Error while trying to create log handle. Error = {0}", e.Message);
+            }
+        }
+        public void DisposeLog(EventLog customLog)
+        {
+            if (customLog != null)
+            {
+                customLog.Dispose();
+                customLog = null;
+            }
+        }
     }
 
     class ChatProxy : ChannelFactory<IChat>, IChat, IDisposable
@@ -112,6 +139,6 @@ namespace ClientApp
             {
                 Console.WriteLine("Error: {0}", e.Message);
             }
-        }
+        }        
     }
 }
