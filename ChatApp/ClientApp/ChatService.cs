@@ -13,6 +13,9 @@ namespace ClientApp
         public void Send(Message message)
         {
             // Targeted user received message here
+            Console.WriteLine($"Encrypted message received: { Encoding.UTF8.GetString(message.Text)}");
+            message.Text = Encoding.UTF8.GetBytes(
+                Encrypting.Decrypt(message.Text, message.Key, message.IV));
 
             Messages.received.Add(message);
         }

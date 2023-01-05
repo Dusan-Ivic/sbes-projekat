@@ -36,10 +36,14 @@ namespace ServiceApp
 
         public void Log(Message message)
         {
-            Console.WriteLine($"[{message.Timestamp}] {message.Sender} -> {message.Receiver}: {message.Text}");
+            string messText = Encrypting.Decrypt(message.Text, message.Key, message.IV);
+            Console.WriteLine($"[{message.Timestamp}] {message.Sender} -> {message.Receiver}: {messText}");
+
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"messages.txt");
             DateTime time = DateTime.Now;
-            File.WriteAllText(path, $"{message.Sender} -> {message.Receiver}  \t Message: {message.Text} \t Time:{time}");
+
+            
+            File.WriteAllText(path, $"{message.Sender} -> {message.Receiver}  \t Message: {messText} \t Time:{time}");
         }
     }
 }
