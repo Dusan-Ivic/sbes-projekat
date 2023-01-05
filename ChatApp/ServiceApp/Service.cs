@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace ServiceApp
 {
@@ -42,8 +43,10 @@ namespace ServiceApp
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"messages.txt");
             DateTime time = DateTime.Now;
 
-            
-            File.WriteAllText(path, $"{message.Sender} -> {message.Receiver}  \t Message: {messText} \t Time:{time}");
+            using (StreamWriter sw = System.IO.File.AppendText(path))
+            {
+                sw.WriteLine($"{message.Sender} -> {message.Receiver}  \t Message: {messText} \t Time:{time}");
+            }            
         }
     }
 }
