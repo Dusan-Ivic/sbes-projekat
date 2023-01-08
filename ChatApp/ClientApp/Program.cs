@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Security.Principal;
+using System.Security.Cryptography.X509Certificates;
 
 namespace ClientApp
 {
@@ -24,19 +25,28 @@ namespace ClientApp
         const string LogName = "MySecTest";
         static void Main(string[] args)
         {
-            string serviceAddress = "net.tcp://localhost:5000/Chat";
+            string sreviceCertCN = "serviceApp";
+
+            /// Use CertManager class to obtain the certificate based on the "srvCertCN" representing the expected service identity.
+            X509Certificate2 sreviceCert = CertificateManager.GetCertificateFromStorage(StoreName.TrustedPeople, StoreLocation.LocalMachine, sreviceCertCN);
+
+            EndpointAddress serviceAddress = new EndpointAddress(new Uri("net.tcp://localhost:5000/Chat"),
+                                      new X509CertificateEndpointIdentity(sreviceCert));
             NetTcpBinding serviceBinding = new NetTcpBinding();
 
             // Autentifikacija putem Windows autentifikacionog protokola (za komunikaciju sa serverom)
             // TODO - Dodati binding-e iz Vezbe 1
-
             serviceBinding.Security.Mode = SecurityMode.Transport;
             serviceBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             serviceBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
 
-            using (ServiceProxy serviceProxy = new ServiceProxy(serviceBinding, new EndpointAddress(new Uri(serviceAddress))))
+            using (ServiceProxy serviceProxy = new ServiceProxy(serviceBinding, serviceAddress))
             {
+                const string clientCertCN = "clientApp";
+                serviceProxy.Credentials.ClientCertificate.Certificate = CertificateManager.GetCertificateFromStorage(
+                    StoreName.My, StoreLocation.LocalMachine, clientCertCN);
+
                 string username = "";
                 User user = null;
 
@@ -79,11 +89,21 @@ namespace ClientApp
                 // TODO - Podesiti binding-e iz Vezbe 3
 
                 string chatAddress = $"net.tcp://localhost:{5000 + user.Id}/{user.Username}";
+
                 NetTcpBinding chatBinding = new NetTcpBinding();
 
+                chatBinding.Security.Mode = SecurityMode.Transport;
+                chatBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
+                chatBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
+
                 ServiceHost host = new ServiceHost(typeof(ChatService));
+
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
 
+                host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = 
+                    System.ServiceModel.Security.X509CertificateValidationMode.ChainTrust;
+                host.Credentials.ClientCertificate.Authentication.RevocationMode =
+                    X509RevocationMode.NoCheck;
                 host.Open();
                 
                 bool isOnline = true;
@@ -146,10 +166,6 @@ namespace ClientApp
                                 // Print encrypted string    
                                 Console.WriteLine($"Encrypted data: {System.Text.Encoding.UTF8.GetString(encrypted)}");
 
-                                // Decrypt the bytes to a string.    
-                                //          string decrypted = Decrypt(encrypted, aes.Key, aes.IV);
-                                // Print decrypted string. It should be same as raw data    
-                                //          Console.WriteLine($"Decrypted data: {decrypted}");
                                 message.Text = encrypted;
                                 message.Key = aes.Key;
                                 message.IV = aes.IV;
@@ -157,9 +173,11 @@ namespace ClientApp
 
                             int receiverId = activeUsers.FirstOrDefault(u => u.Username == receiver).Id;
 
-                            string receiverAddress = $"net.tcp://localhost:{5000 + receiverId}/{receiver}";
 
-                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, new EndpointAddress(new Uri(receiverAddress))))
+                            EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5000 + receiverId}/{receiver}"),
+                                                  new X509CertificateEndpointIdentity(sreviceCert));
+
+                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress))
                             {
                                 chatProxy.Send(message);
                                 serviceProxy.Log(message);
