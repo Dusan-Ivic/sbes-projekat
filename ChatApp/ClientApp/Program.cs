@@ -13,6 +13,10 @@ using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Security.Principal;
+using System.Security.Cryptography.X509Certificates;
+using System.ServiceModel.Security;
+using System.Net;
+
 
 namespace ClientApp
 {
@@ -28,13 +32,11 @@ namespace ClientApp
             NetTcpBinding serviceBinding = new NetTcpBinding();
 
             // Autentifikacija putem Windows autentifikacionog protokola (za komunikaciju sa serverom)
-            // TODO - Dodati binding-e iz Vezbe 1
-
             serviceBinding.Security.Mode = SecurityMode.Transport;
             serviceBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             serviceBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
-
+            //Komunikacija sa Service
             using (ServiceProxy serviceProxy = new ServiceProxy(serviceBinding, new EndpointAddress(new Uri(serviceAddress))))
             {
                 string username = "";
@@ -76,13 +78,30 @@ namespace ClientApp
 
                 // Konekcija sa serverom izvrsena
                 // Prelazak na autentifikaciju putem sertifikata
-                // TODO - Podesiti binding-e iz Vezbe 3
+                NetTcpBinding chatBinding = new NetTcpBinding();
+                chatBinding.Security.Mode = SecurityMode.Transport;
+                chatBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
+                chatBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
                 string chatAddress = $"net.tcp://localhost:{5000 + user.Id}/{user.Username}";
-                NetTcpBinding chatBinding = new NetTcpBinding();
-
                 ServiceHost host = new ServiceHost(typeof(ChatService));
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
+
+                //Custom validation mode enables creation of a custom validator - CustomCertificateValidator
+                host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
+                host.Credentials.ClientCertificate.Authentication.CustomCertificateValidator = new CertValidator(user.Username);
+
+                //If CA doesn't have a CRL associated, WCF blocks every client because it cannot be validated
+                host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
+                
+                ///Set appropriate service's certificate on the host. Use CertManager class to obtain the certificate based on the "srvCertCN"
+                
+                while (true)
+                {
+                    host.Credentials.ServiceCertificate.Certificate = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, $"{user.Username}");
+                    Thread.Sleep(2000);
+                    if (host.Credentials.ServiceCertificate.Certificate != null) break;                    
+                }
 
                 host.Open();
                 
@@ -131,11 +150,14 @@ namespace ClientApp
                             string text = Console.ReadLine();
 
                             Common.Message message = new Common.Message()
-                            {
+                            {                                
                                 Sender = username,
-                                Receiver = receiver
+                                Receiver = receiver,
+                                Timestamp= DateTime.Now,
                             };
+                            //Autentifikacija preko sertifikata
 
+                            Messages.sent.Add(message);
                             //Messsage encrypting
                             // Create Aes that generates a new key and initialization vector (IV).    
                             // Same key must be used in encryption and decryption    
@@ -143,13 +165,7 @@ namespace ClientApp
                             {
                                 // Encrypt string    
                                 byte[] encrypted = Encrypting.Encrypt(text, aes.Key, aes.IV);
-                                // Print encrypted string    
-                                Console.WriteLine($"Encrypted data: {System.Text.Encoding.UTF8.GetString(encrypted)}");
 
-                                // Decrypt the bytes to a string.    
-                                //          string decrypted = Decrypt(encrypted, aes.Key, aes.IV);
-                                // Print decrypted string. It should be same as raw data    
-                                //          Console.WriteLine($"Decrypted data: {decrypted}");
                                 message.Text = encrypted;
                                 message.Key = aes.Key;
                                 message.IV = aes.IV;
@@ -157,10 +173,16 @@ namespace ClientApp
 
                             int receiverId = activeUsers.FirstOrDefault(u => u.Username == receiver).Id;
 
-                            string receiverAddress = $"net.tcp://localhost:{5000 + receiverId}/{receiver}";
+                            string clientCertCN = $"{receiver}";
+                            /// Use CertificateManager class to obtain the certificate based on the "srvCertCN" representing the expected service identity.
+                            X509Certificate2 clientCert = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, clientCertCN);
 
-                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, new EndpointAddress(new Uri(receiverAddress))))
-                            {
+                            EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5000 + receiverId}/{receiver}"),
+                                                  new X509CertificateEndpointIdentity(clientCert));
+
+                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress, receiver, clientCert))
+                            {                 
+                                
                                 chatProxy.Send(message);
                                 serviceProxy.Log(message);
                             }
@@ -177,7 +199,8 @@ namespace ClientApp
                             Console.WriteLine("Sent messages:");
                             foreach (Common.Message m in Messages.sent)
                             {
-                                Console.WriteLine($"To: {m.Receiver}: {Encoding.UTF8.GetString(m.Text)}");
+                                
+                                Console.WriteLine($"To: {m.Receiver}: {Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(Encrypting.Decrypt(m.Text, m.Key, m.IV)))}");
                             }
                             break;
                         case "5":

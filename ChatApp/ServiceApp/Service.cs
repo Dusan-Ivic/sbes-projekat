@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.WebRequestMethods;
@@ -22,6 +23,12 @@ namespace ServiceApp
 
             Console.WriteLine($"User \"{username}\" connected");
 
+            //generise sertifikat za klijenta ako vec ne postoji
+            if(CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username) ==null)
+            {
+                CertificateManager.GenerateClientCertificate(username);
+            }
+            
             return UsersDB.InsertUser(username);
         }
 

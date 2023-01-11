@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel;
+using System.ServiceModel.Security;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -79,42 +81,21 @@ namespace ClientApp
                 Console.WriteLine("Error: {0}", e.Message);
             }
         }
-        public  void Audit(string SourceName, string LogName, EventLog customLog)
-        {
-            try
-            {
-                if (!EventLog.SourceExists(SourceName))
-                {
-                    EventLog.CreateEventSource(SourceName, LogName);
-                }
-                customLog = new EventLog();
-                customLog.Source = SourceName;
-                customLog.WriteEntry("An entry to the Application event log.", System.Diagnostics.EventLogEntryType.SuccessAudit);
-            }
-            catch (Exception e)
-            {
-                customLog = null;
-                Console.WriteLine("Error while trying to create log handle. Error = {0}", e.Message);
-            }
-        }
-        public void DisposeLog(EventLog customLog)
-        {
-            if (customLog != null)
-            {
-                customLog.Dispose();
-                customLog = null;
-            }
-        }
     }
 
     class ChatProxy : ChannelFactory<IChat>, IChat, IDisposable
     {
         private IChat factory;
 
-        public ChatProxy(NetTcpBinding binding, EndpointAddress address)
+        public ChatProxy(NetTcpBinding binding, EndpointAddress address, string receiver, X509Certificate2 certificate)
             : base(binding, address)
         {
+            this.Credentials.ClientCertificate.Certificate = certificate;
+            this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
+            this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
+            this.Credentials.ServiceCertificate.Authentication.CustomCertificateValidator = new CertValidator(receiver);
             factory = this.CreateChannel();
+           
         }
 
         public void Dispose()
@@ -131,9 +112,7 @@ namespace ClientApp
         {
             try
             {
-                message.Timestamp = DateTime.Now;
-                factory.Send(message);
-                Messages.sent.Add(message);
+                factory.Send(message);                
             }
             catch (Exception e)
             {
