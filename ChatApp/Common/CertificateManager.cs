@@ -70,7 +70,12 @@ namespace Common
                 // PASSWORD JE "FTN"
                 sw.WriteLine("pvk2pfx.exe /pvk serviceApp.pvk /pi ftn /spc serviceApp.cer /pfx serviceApp.pfx");
             }
-            string path = Path.Combine(projectDirectory, $"serviceApp.pfx");
+            //ceka da se unese svaka sifra
+            while (GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, "serviceApp.pfx") == null)
+            {
+                Thread.Sleep(1000);
+            }
+            string path = Path.Combine(projectDirectory, "serviceApp.pfx");
             InstallCertificate(path);
         }
         public static void GenerateClientCertificate(string username)
