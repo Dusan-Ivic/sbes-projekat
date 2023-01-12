@@ -76,12 +76,24 @@ namespace Common
                 // PASSWORD JE "FTN"
                 sw.WriteLine("pvk2pfx.exe /pvk serviceApp.pvk /pi ftn /spc serviceApp.cer /pfx serviceApp.pfx");
             }
-            //ceka da se unese svaka sifra
-            while (GetCertificateFromFile(certPath, "ftn") == null)
+            
+            string path = Path.Combine(projectDirectory, "serviceApp.pfx");
+
+            X509Certificate2 cert = null;
+
+            while (cert == null)
             {
-                Thread.Sleep(1000);
+                try
+                {
+                    cert = GetCertificateFromFile(path);
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(1000);
+                }
             }
-            InstallCertificate(certPath);
+            
+            InstallCertificate(path);
         }
         public static void GenerateClientCertificate(string username)
         {
@@ -108,22 +120,34 @@ namespace Common
                     "-sr localmachine -ss My -sky exchange");
                 sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
             }
-            //ceka da se unese svaka sifra
-            while (GetCertificateFromFile(certPath, "ftn") == null)
+            
+            string path = Path.Combine(projectDirectory, $"{username}.pfx");
+
+            X509Certificate2 cert = null;
+
+            while (cert == null)
             {
-                Thread.Sleep(1000);
+                try
+                {
+                    cert = GetCertificateFromFile(path);
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(1000);
+                }
             }
-            InstallCertificate(certPath);
-           
-            
+
+            InstallCertificate(path);
         }
-        public static void InstallCertificate(string file)
+
+        public static void InstallCertificate(string path)
         {
-            X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
-            
-            store.Open(OpenFlags.ReadWrite);
-            store.Add(new X509Certificate2(file,"ftn"));
-            store.Close();
+            using (X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine))
+            {
+                store.Open(OpenFlags.ReadWrite);
+                store.Add(new X509Certificate2(path, "ftn"));
+                store.Close();
+            }
         }
         public static string ParseName(string winLogonName)
         {

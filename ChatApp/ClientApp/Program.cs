@@ -74,8 +74,7 @@ namespace ClientApp
                 {
                     throw new ArgumentException(string.Format("Error while trying to write event (eventid = {0}) to event log."));
                 }
-
-
+                
                 // Konekcija sa serverom izvrsena
                 // Prelazak na autentifikaciju putem sertifikata
                 NetTcpBinding chatBinding = new NetTcpBinding();
@@ -87,21 +86,22 @@ namespace ClientApp
                 ServiceHost host = new ServiceHost(typeof(ChatService));
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
 
-                //Custom validation mode enables creation of a custom validator - CustomCertificateValidator
-                host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
-                host.Credentials.ClientCertificate.Authentication.CustomCertificateValidator = new CertValidator(user.Username);
+                string srvCertCN = username;
 
-                //If CA doesn't have a CRL associated, WCF blocks every client because it cannot be validated
+                host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.Custom;
+                host.Credentials.ClientCertificate.Authentication.CustomCertificateValidator = new CertValidator();
+
                 host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
-                
-                ///Set appropriate service's certificate on the host. Use CertManager class to obtain the certificate based on the "srvCertCN"
-                
-                while (true)
-                {
-                    host.Credentials.ServiceCertificate.Certificate = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, $"{user.Username}");
-                    Thread.Sleep(2000);
-                    if (host.Credentials.ServiceCertificate.Certificate != null) break;                    
-                }
+
+                string workingDirectory = Environment.CurrentDirectory;
+                string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
+                string certificatePath = Path.Combine(projectDirectory, $"{username}.pfx");
+
+                // Zakomentarisati ovo
+                host.Credentials.ServiceCertificate.Certificate = CertificateManager.GetCertificateFromFile(certificatePath);
+
+                // Otkomentarisati ovo
+                //host.Credentials.ServiceCertificate.Certificate = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username);
 
                 host.Open();
                 
@@ -173,14 +173,20 @@ namespace ClientApp
 
                             int receiverId = activeUsers.FirstOrDefault(u => u.Username == receiver).Id;
 
-                            string clientCertCN = $"{receiver}";
-                            /// Use CertificateManager class to obtain the certificate based on the "srvCertCN" representing the expected service identity.
-                            X509Certificate2 clientCert = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, clientCertCN);
+                            workingDirectory = Environment.CurrentDirectory;
+                            projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
+                            certificatePath = Path.Combine(projectDirectory, $"{receiver}.pfx");
+
+                            // Zakomentarisati ovo
+                            X509Certificate2 receiverCert = CertificateManager.GetCertificateFromFile(certificatePath);
+
+                            // Otkomentarisati ovo
+                            //X509Certificate2 receiverCert = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, receiver);
 
                             EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5000 + receiverId}/{receiver}"),
-                                                  new X509CertificateEndpointIdentity(clientCert));
+                                                  new X509CertificateEndpointIdentity(receiverCert));
 
-                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress, receiver, clientCert))
+                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress, username))
                             {                 
                                 
                                 chatProxy.Send(message);
