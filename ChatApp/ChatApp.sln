@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientApp", "ClientApp\Clie
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{7397F396-D8FD-4710-92CE-24197DFA7D64}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitoringServiceApp", "MonitoringServiceApp\MonitoringServiceApp.csproj", "{033BCF13-28BF-42BF-BF78-DB2AB0B15962}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{7397F396-D8FD-4710-92CE-24197DFA7D64}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7397F396-D8FD-4710-92CE-24197DFA7D64}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7397F396-D8FD-4710-92CE-24197DFA7D64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{033BCF13-28BF-42BF-BF78-DB2AB0B15962}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{033BCF13-28BF-42BF-BF78-DB2AB0B15962}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{033BCF13-28BF-42BF-BF78-DB2AB0B15962}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{033BCF13-28BF-42BF-BF78-DB2AB0B15962}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

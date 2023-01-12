@@ -31,6 +31,9 @@ namespace ClientApp
             string serviceAddress = "net.tcp://localhost:5000/Chat";
             NetTcpBinding serviceBinding = new NetTcpBinding();
 
+            string monitoringAddress = "net.tcp://localhost:5001/Monitoring";
+            NetTcpBinding monitoringBinding = new NetTcpBinding();
+
             // Autentifikacija putem Windows autentifikacionog protokola (za komunikaciju sa serverom)
             serviceBinding.Security.Mode = SecurityMode.Transport;
             serviceBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
@@ -83,7 +86,7 @@ namespace ClientApp
                 chatBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
                 chatBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
-                string chatAddress = $"net.tcp://localhost:{5000 + user.Id}/{user.Username}";
+                string chatAddress = $"net.tcp://localhost:{5001 + user.Id}/{user.Username}";
                 ServiceHost host = new ServiceHost(typeof(ChatService));
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
 
@@ -177,17 +180,21 @@ namespace ClientApp
                             /// Use CertificateManager class to obtain the certificate based on the "srvCertCN" representing the expected service identity.
                             X509Certificate2 clientCert = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, clientCertCN);
 
-                            EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5000 + receiverId}/{receiver}"),
+                            EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5001 + receiverId}/{receiver}"),
                                                   new X509CertificateEndpointIdentity(clientCert));
 
                             using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress, receiver, clientCert))
                             {                 
                                 
                                 chatProxy.Send(message);
-                                serviceProxy.Log(message);
                             }
 
-                            break;
+                            using (MonitoringServiceProxy monitoringProxy = new MonitoringServiceProxy(monitoringBinding, new EndpointAddress(new Uri(monitoringAddress))))
+                            {
+                                monitoringProxy.Log(message);
+                            }
+
+                                break;
                         case "3":
                             Console.WriteLine("Received messages:");
                             foreach (Common.Message m in Messages.received)
