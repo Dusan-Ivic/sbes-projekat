@@ -38,8 +38,13 @@ namespace Common
         /// <returns>The requested certificate. If no valid certificate is found, returns null.</returns>
         public static X509Certificate2 GetCertificateFromFile(string fileName, string password = "ftn")
         {
-            var securePassword = ConvertToSecureString(password);
-            return new X509Certificate2(fileName, securePassword);
+            try
+            {
+                var securePassword = ConvertToSecureString(password);
+                return new X509Certificate2(fileName, securePassword);
+            }
+            catch { return null; }
+            
         }
 
         public static void GenerateServiceCertificate()
@@ -58,6 +63,7 @@ namespace Common
             string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
             //startInfo.Arguments = $"/C cd{projectDirectory} ";
             startInfo.WorkingDirectory = projectDirectory;
+            string certPath = Path.Combine(projectDirectory, $"serviceApp.pfx");
             process.StartInfo = startInfo;
             process.Start();
 
@@ -70,7 +76,7 @@ namespace Common
                 // PASSWORD JE "FTN"
                 sw.WriteLine("pvk2pfx.exe /pvk serviceApp.pvk /pi ftn /spc serviceApp.cer /pfx serviceApp.pfx");
             }
-
+            
             string path = Path.Combine(projectDirectory, "serviceApp.pfx");
 
             X509Certificate2 cert = null;
@@ -103,6 +109,7 @@ namespace Common
             string workingDirectory = Environment.CurrentDirectory;
             string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
             startInfo.WorkingDirectory = projectDirectory;
+            string certPath = Path.Combine(projectDirectory, $"{username}.pfx");
             process.StartInfo = startInfo;
             process.Start();
 
@@ -113,7 +120,7 @@ namespace Common
                     "-sr localmachine -ss My -sky exchange");
                 sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
             }
-
+            
             string path = Path.Combine(projectDirectory, $"{username}.pfx");
 
             X509Certificate2 cert = null;
