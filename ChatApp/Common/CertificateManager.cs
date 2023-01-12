@@ -38,8 +38,13 @@ namespace Common
         /// <returns>The requested certificate. If no valid certificate is found, returns null.</returns>
         public static X509Certificate2 GetCertificateFromFile(string fileName, string password = "ftn")
         {
-            var securePassword = ConvertToSecureString(password);
-            return new X509Certificate2(fileName, securePassword);
+            try
+            {
+                var securePassword = ConvertToSecureString(password);
+                return new X509Certificate2(fileName, securePassword);
+            }
+            catch { return null; }
+            
         }
 
         public static void GenerateServiceCertificate()
@@ -58,6 +63,7 @@ namespace Common
             string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
             //startInfo.Arguments = $"/C cd{projectDirectory} ";
             startInfo.WorkingDirectory = projectDirectory;
+            string certPath = Path.Combine(projectDirectory, $"serviceApp.pfx");
             process.StartInfo = startInfo;
             process.Start();
 
@@ -71,12 +77,11 @@ namespace Common
                 sw.WriteLine("pvk2pfx.exe /pvk serviceApp.pvk /pi ftn /spc serviceApp.cer /pfx serviceApp.pfx");
             }
             //ceka da se unese svaka sifra
-            while (GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, "serviceApp.pfx") == null)
+            while (GetCertificateFromFile(certPath, "ftn") == null)
             {
                 Thread.Sleep(1000);
             }
-            string path = Path.Combine(projectDirectory, "serviceApp.pfx");
-            InstallCertificate(path);
+            InstallCertificate(certPath);
         }
         public static void GenerateClientCertificate(string username)
         {
@@ -92,6 +97,7 @@ namespace Common
             string workingDirectory = Environment.CurrentDirectory;
             string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
             startInfo.WorkingDirectory = projectDirectory;
+            string certPath = Path.Combine(projectDirectory, $"{username}.pfx");
             process.StartInfo = startInfo;
             process.Start();
 
@@ -103,12 +109,11 @@ namespace Common
                 sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
             }
             //ceka da se unese svaka sifra
-            while (GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username) == null)
+            while (GetCertificateFromFile(certPath, "ftn") == null)
             {
                 Thread.Sleep(1000);
             }
-            string path = Path.Combine(projectDirectory,$"{username}.pfx");
-            InstallCertificate(path);
+            InstallCertificate(certPath);
            
             
         }
