@@ -3,6 +3,7 @@ using Contracts;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel;
@@ -87,15 +88,24 @@ namespace ClientApp
     {
         private IChat factory;
 
-        public ChatProxy(NetTcpBinding binding, EndpointAddress address, string receiver, X509Certificate2 certificate)
+        public ChatProxy(NetTcpBinding binding, EndpointAddress address, string username)
             : base(binding, address)
         {
-            this.Credentials.ClientCertificate.Certificate = certificate;
-            this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
+            this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = System.ServiceModel.Security.X509CertificateValidationMode.Custom;
+            this.Credentials.ServiceCertificate.Authentication.CustomCertificateValidator = new CertValidator();
             this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
-            this.Credentials.ServiceCertificate.Authentication.CustomCertificateValidator = new CertValidator(receiver);
+
+            // Zakomentarisati ovog
+            string workingDirectory = Environment.CurrentDirectory;
+            string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
+            string certificatePath = Path.Combine(projectDirectory, $"{username}.pfx");
+            
+            this.Credentials.ClientCertificate.Certificate = CertificateManager.GetCertificateFromFile(certificatePath);
+
+            // Otkomentarisati ovog
+            //this.Credentials.ClientCertificate.Certificate = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username);
+
             factory = this.CreateChannel();
-           
         }
 
         public void Dispose()
