@@ -8,8 +8,6 @@ using System.Threading.Tasks;
 
 namespace Contracts
 {
-    // TODO - Dodati IMonitoring interfejs
-
     [ServiceContract]
     public interface IMonitoring
     {

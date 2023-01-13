@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 
 namespace MonitoringApp
 {
-    // TODO - Implementirati IMonitoring intefejs
     class Monitoring : IMonitoring
     {
         public void Log(Message message)

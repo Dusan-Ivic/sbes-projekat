@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 
 namespace MonitoringApp
 {
-    // TODO - Podesiti Monitoring server aplikaciju
     class Program
     {
         static void Main(string[] args)

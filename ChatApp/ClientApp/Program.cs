@@ -31,7 +31,6 @@ namespace ClientApp
             string serviceAddress = "net.tcp://localhost:5000/Chat";
             NetTcpBinding serviceBinding = new NetTcpBinding();
 
-            // TODO - Podesiti bindinge za Monitoring aplikaciju
             string monitoringAddress = "net.tcp://localhost:5001/Monitoring";
             NetTcpBinding monitoringBinding = new NetTcpBinding();
 
@@ -86,7 +85,6 @@ namespace ClientApp
                 chatBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
                 chatBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
 
-                // TODO - Promeniti port u chatAddress iz 5000 u 5001
                 string chatAddress = $"net.tcp://localhost:{5001 + user.Id}/{user.Username}";
                 ServiceHost host = new ServiceHost(typeof(ChatService));
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
@@ -187,8 +185,7 @@ namespace ClientApp
 
                             // Otkomentarisati ovo
                             //X509Certificate2 receiverCert = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, receiver);
-
-                            // TODO - Promeniti port u EndpointAddress iz 5000 u 5001
+                            
                             EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5001 + receiverId}/{receiver}"),
                                                   new X509CertificateEndpointIdentity(receiverCert));
 
@@ -197,8 +194,7 @@ namespace ClientApp
                                 
                                 chatProxy.Send(message);
                             }
-
-                            // TODO - Pozvati Log metodu iz MonitoringProxy klase
+                            
                             using (MonitoringProxy monitoringProxy = new MonitoringProxy(monitoringBinding, new EndpointAddress(monitoringAddress)))
                             {
                                 monitoringProxy.Log(message);
