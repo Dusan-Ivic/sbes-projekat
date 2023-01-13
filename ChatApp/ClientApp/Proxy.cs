@@ -71,6 +71,41 @@ namespace ClientApp
             }
         }
 
+        // TODO - Obrisati Log iz ServiceProxy
+        //public void Log(Message message)
+        //{
+        //    try
+        //    {
+        //        factory.Log(message);
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        Console.WriteLine("Error: {0}", e.Message);
+        //    }
+        //}
+    }
+
+    // TODO - Dodati MonitoringProxy klasu
+    class MonitoringProxy : ChannelFactory<IMonitoring>, IMonitoring, IDisposable
+    {
+        private IMonitoring factory;
+
+        public MonitoringProxy(NetTcpBinding binding, EndpointAddress address)
+            : base(binding, address)
+        {
+            factory = this.CreateChannel();
+        }
+
+        public void Dispose()
+        {
+            if (factory != null)
+            {
+                factory = null;
+            }
+
+            this.Close();
+        }
+        
         public void Log(Message message)
         {
             try

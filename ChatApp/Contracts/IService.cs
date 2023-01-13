@@ -20,7 +20,8 @@ namespace Contracts
         [OperationContract]
         void Disconnect(User user);
 
-        [OperationContract]
-        void Log(Message message);
+        // TODO - Obrisati Log iz IService
+        //[OperationContract]
+        //void Log(Message message);
     }
 }
