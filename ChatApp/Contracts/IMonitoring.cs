@@ -9,15 +9,9 @@ using System.Threading.Tasks;
 namespace Contracts
 {
     [ServiceContract]
-    public interface IService
+    public interface IMonitoring
     {
         [OperationContract]
-        User Connect(string username);
-
-        [OperationContract]
-        List<User> GetUsers();
-
-        [OperationContract]
-        void Disconnect(User user);
+        void Log(Message message);
     }
 }

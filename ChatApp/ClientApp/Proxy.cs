@@ -70,7 +70,28 @@ namespace ClientApp
                 Console.WriteLine("Error: {0}", e.Message);
             }
         }
+    }
+    
+    class MonitoringProxy : ChannelFactory<IMonitoring>, IMonitoring, IDisposable
+    {
+        private IMonitoring factory;
 
+        public MonitoringProxy(NetTcpBinding binding, EndpointAddress address)
+            : base(binding, address)
+        {
+            factory = this.CreateChannel();
+        }
+
+        public void Dispose()
+        {
+            if (factory != null)
+            {
+                factory = null;
+            }
+
+            this.Close();
+        }
+        
         public void Log(Message message)
         {
             try
