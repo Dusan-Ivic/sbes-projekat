@@ -91,8 +91,7 @@ namespace ClientApp
 
                 string srvCertCN = username;
 
-                host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.Custom;
-                host.Credentials.ClientCertificate.Authentication.CustomCertificateValidator = new CertValidator();
+                host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
 
                 host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
 
