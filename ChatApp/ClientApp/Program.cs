@@ -21,10 +21,6 @@ namespace ClientApp
 {
     class Program
     {
-        private static int idNum = 0;
-        private static EventLog customLog = null;
-        const string SourceName = "ClientApp.Program";
-        const string LogName = "MySecTest";
         static void Main(string[] args)
         {
             string serviceAddress = "net.tcp://localhost:5000/Chat";
@@ -33,7 +29,6 @@ namespace ClientApp
             string monitoringAddress = "net.tcp://localhost:5001/Monitoring";
             NetTcpBinding monitoringBinding = new NetTcpBinding();
 
-            // Autentifikacija putem Windows autentifikacionog protokola (za komunikaciju sa serverom)
             serviceBinding.Security.Mode = SecurityMode.Transport;
             serviceBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             serviceBinding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
@@ -44,33 +39,6 @@ namespace ClientApp
                 string username = Common.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
                 User user = serviceProxy.Connect(username);
 
-                //Logging client connection
-                try
-                {
-                    if (!EventLog.SourceExists(SourceName))
-                    {
-                        EventLog.CreateEventSource(SourceName, LogName);
-                    }
-                    customLog = new EventLog(LogName,
-                        Environment.MachineName, SourceName);
-                }
-                catch (Exception e)
-                {
-                    customLog = null;
-                    Console.WriteLine("Error while trying to create log handle. Error = {0}", e.Message);
-                }
-                if (customLog != null)
-                {
-                    Console.WriteLine($"{username} successfully Authenticated");
-                    customLog.WriteEntry($"{username} successfully Authenticated and CONNECTED to server.");
-                }
-                else
-                {
-                    throw new ArgumentException(string.Format("Error while trying to write event (eventid = {0}) to event log."));
-                }
-                
-                // Konekcija sa serverom izvrsena
-                // Prelazak na autentifikaciju putem sertifikata
                 NetTcpBinding chatBinding = new NetTcpBinding();
                 chatBinding.Security.Mode = SecurityMode.Transport;
                 chatBinding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Certificate;
@@ -86,7 +54,6 @@ namespace ClientApp
                 string workingDirectory = Environment.CurrentDirectory;
                 string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
 
-                //// Install client's .pfx certificate in CurrentUser/Personal
                 string clientCertificatePath = Path.Combine(projectDirectory, $"{username}.pfx");
                 X509Certificate2 clientCertificate = null;
 
@@ -102,8 +69,6 @@ namespace ClientApp
                     }
                 }
 
-                // TODO - Use Impersonification in CertificateManager to install certificate
-                //CertificateManager.InstallCertificate(clientCertificate, StoreName.My, StoreLocation.LocalMachine);
                 host.Credentials.ServiceCertificate.Certificate = clientCertificate;
                 
                 host.Open();
@@ -153,20 +118,15 @@ namespace ClientApp
                             string text = Console.ReadLine();
 
                             Common.Message message = new Common.Message()
-                            {                                
+                            {
                                 Sender = username,
                                 Receiver = receiver,
-                                Timestamp= DateTime.Now,
+                                Timestamp = DateTime.Now,
                             };
-                            //Autentifikacija preko sertifikata
-
                             Messages.sent.Add(message);
-                            //Messsage encrypting
-                            // Create Aes that generates a new key and initialization vector (IV).    
-                            // Same key must be used in encryption and decryption    
+                            
                             using (AesManaged aes = new AesManaged())
                             {
-                                // Encrypt string    
                                 byte[] encrypted = Encrypting.Encrypt(text, aes.Key, aes.IV);
 
                                 message.Text = encrypted;
@@ -179,13 +139,9 @@ namespace ClientApp
                             workingDirectory = Environment.CurrentDirectory;
                             projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
                             
-                            // Install receiver's .pfx certificate in CurrentUser/TrustedPeople
                             string receiverCertificatePath = Path.Combine(projectDirectory, $"{receiver}.cer");
                             X509Certificate2 receiverCertificate = CertificateManager.GetCertificateFromFile(receiverCertificatePath);
 
-                            // TODO - Use Impersonification in CertificateManager to install certificate
-                            //CertificateManager.InstallCertificate(receiverCertificate, StoreName.TrustedPeople, StoreLocation.LocalMachine);
-                            
                             EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5001 + receiverId}/{receiver}"),
                                                   new X509CertificateEndpointIdentity(receiverCertificate));
 
@@ -218,27 +174,6 @@ namespace ClientApp
                         case "5":
                             serviceProxy.Disconnect(user);
                             isOnline = false;
-                            //Logging the disconnect action
-                            try
-                            {
-                                customLog = new EventLog(LogName,
-                                    Environment.MachineName, SourceName);
-                            }
-                            catch (Exception e)
-                            {
-                                customLog = null;
-                                Console.WriteLine("Error while trying to create log handle. Error = {0}", e.Message);
-                            }
-                            if (customLog != null)
-                            {
-                                customLog.WriteEntry($"Client {username} has been DISCONNECTED");
-
-                            }
-                            else
-                            {
-                                throw new ArgumentException(string.Format("Error while trying to write event (eventid = {0}) to event log."));
-                            }
-
                             break;
                         default:
                             return;

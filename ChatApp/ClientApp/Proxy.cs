@@ -117,11 +117,11 @@ namespace ClientApp
 
             this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
             this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
-
+            
             X509Certificate2 clientCertificate
                 = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
-            
-            this.Credentials.ClientCertificate.Certificate = clientCertificate;
+
+            this.Credentials.ClientCertificate.Certificate = clientCertificate;           
 
             factory = this.CreateChannel();
         }

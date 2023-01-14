@@ -2,17 +2,17 @@
 using Contracts;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.WebRequestMethods;
-
 namespace ServiceApp
 {
     class Service : IService
     {
+        private static EventLog customLog = null;
+        const string SourceName = "ServiceApp.Service";
+        const string LogName = "MySecTest";
         public User Connect(string username)
         {
             if (UsersDB.users.ContainsKey(username))
@@ -20,20 +20,21 @@ namespace ServiceApp
                 Console.WriteLine($"User \"{username}\" already exists");
                 return null;
             }
-
+            EventLogging();
             Console.WriteLine($"User \"{username}\" connected");
 
-            //generise sertifikat za klijenta ako vec ne postoji
             if(CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username) ==null)
             {
                 CertificateManager.GenerateClientCertificate(username);
+                customLog.WriteEntry($"Certificate generated for {username}");
             }
-            
+            customLog.WriteEntry($"{username} CONNECTED");
             return UsersDB.InsertUser(username);
         }
 
         public void Disconnect(User user)
         {
+            customLog.WriteEntry($"{user.Username} DISCONNECTED");
             UsersDB.users.Remove(user.Username);
         }
 
@@ -42,18 +43,26 @@ namespace ServiceApp
             return UsersDB.users.Values.ToList();
         }
 
-        public void Log(Message message)
+        public void EventLogging()
         {
-            string messText = Encrypting.Decrypt(message.Text, message.Key, message.IV);
-            Console.WriteLine($"[{message.Timestamp}] {message.Sender} -> {message.Receiver}: {messText}");
-
-            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"messages.txt");
-            DateTime time = DateTime.Now;
-
-            using (StreamWriter sw = System.IO.File.AppendText(path))
+            try
             {
-                sw.WriteLine($"{message.Sender} -> {message.Receiver}  \t Message: {messText} \t Time:{time}");
-            }            
+                if (!EventLog.SourceExists(SourceName))
+                {
+                    EventLog.CreateEventSource(SourceName, LogName);
+                }
+                customLog = new EventLog(LogName,
+                    Environment.MachineName, SourceName);
+            }
+            catch (Exception e)
+            {
+                customLog = null;
+                Console.WriteLine("Error while trying to create log handle. Error = {0}", e.Message);
+            }
+            if (customLog == null)
+            {
+                throw new ArgumentException(string.Format("Error while trying to write event (eventid = {0}) to event log."));
+            }
         }
     }
 }
