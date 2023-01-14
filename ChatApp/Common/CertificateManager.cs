@@ -77,6 +77,8 @@ namespace Common
                 sw.WriteLine("pvk2pfx.exe /pvk serviceApp.pvk /pi ftn /spc serviceApp.cer /pfx serviceApp.pfx");
             }
             
+            // Install serviceApp.pfx in Personal storage
+
             string path = Path.Combine(projectDirectory, "serviceApp.pfx");
 
             X509Certificate2 cert = null;
@@ -93,7 +95,27 @@ namespace Common
                 }
             }
             
-            InstallCertificate(path);
+            InstallCertificate(path, StoreName.My, StoreLocation.LocalMachine);
+
+            // Install serviceApp.cer in Trusted People storage
+
+            path = Path.Combine(projectDirectory, "serviceApp.cer");
+
+            cert = null;
+
+            while (cert == null)
+            {
+                try
+                {
+                    cert = GetCertificateFromFile(path);
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+
+            InstallCertificate(path, StoreName.TrustedPeople, StoreLocation.LocalMachine);
         }
         public static void GenerateClientCertificate(string username)
         {
@@ -120,7 +142,9 @@ namespace Common
                     "-sr localmachine -ss My -sky exchange");
                 sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
             }
-            
+
+            // Install client {username}.pfx in Personal storage
+
             string path = Path.Combine(projectDirectory, $"{username}.pfx");
 
             X509Certificate2 cert = null;
@@ -137,12 +161,12 @@ namespace Common
                 }
             }
 
-            InstallCertificate(path);
+            InstallCertificate(path, StoreName.My, StoreLocation.LocalMachine);
         }
 
-        public static void InstallCertificate(string path)
+        public static void InstallCertificate(string path, StoreName storeName, StoreLocation storeLocation)
         {
-            using (X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine))
+            using (X509Store store = new X509Store(storeName, storeLocation))
             {
                 store.Open(OpenFlags.ReadWrite);
                 store.Add(new X509Certificate2(path, "ftn"));
