@@ -116,14 +116,24 @@ namespace ClientApp
             string cltCertCN = Common.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
 
             this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
-            this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
+            this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.Offline;
             
             X509Certificate2 clientCertificate
                 = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
 
-            this.Credentials.ClientCertificate.Certificate = clientCertificate;           
-
-            factory = this.CreateChannel();
+            try
+            {
+                ChainValidator.ValidateCert(clientCertificate);
+                this.Credentials.ClientCertificate.Certificate = clientCertificate;
+                factory = this.CreateChannel();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                this.Close();
+            }
+            
+           
         }
 
         public void Dispose()
@@ -146,6 +156,6 @@ namespace ClientApp
             {
                 Console.WriteLine("Error: {0}", e.Message);
             }
-        }        
+        }       
     }
 }

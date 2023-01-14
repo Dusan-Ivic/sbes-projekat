@@ -49,6 +49,10 @@ namespace Common
 
         public static void GenerateClientCertificate(string username)
         {
+            if (username == "pera")
+            {
+                return;
+            }
             Process process = new Process();
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -63,6 +67,7 @@ namespace Common
             startInfo.WorkingDirectory = projectDirectory;
             string certPath = Path.Combine(projectDirectory, $"{username}.pfx");
             process.StartInfo = startInfo;
+            
             process.Start();
 
             using (StreamWriter sw = process.StandardInput)

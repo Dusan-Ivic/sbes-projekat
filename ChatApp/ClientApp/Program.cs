@@ -49,7 +49,7 @@ namespace ClientApp
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
 
                 host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
-                host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
+                host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.Offline;
 
                 string workingDirectory = Environment.CurrentDirectory;
                 string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
