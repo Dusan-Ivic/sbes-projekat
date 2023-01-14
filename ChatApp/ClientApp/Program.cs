@@ -86,12 +86,7 @@ namespace ClientApp
                 string workingDirectory = Environment.CurrentDirectory;
                 string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
 
-                // Install TestCA.cer certificate in CurrentUser/TrustedRoot
-                string testCertificatePath = Path.Combine(projectDirectory, "TestCA.cer");
-                X509Certificate2 testCertificate = CertificateManager.GetCertificateFromFile(testCertificatePath);
-                CertificateManager.InstallCertificate(testCertificate, StoreName.AuthRoot, StoreLocation.LocalMachine);
-
-                // Install client's .pfx certificate in CurrentUser/Personal
+                //// Install client's .pfx certificate in CurrentUser/Personal
                 string clientCertificatePath = Path.Combine(projectDirectory, $"{username}.pfx");
                 X509Certificate2 clientCertificate = null;
 
@@ -106,8 +101,9 @@ namespace ClientApp
                         Thread.Sleep(1000);
                     }
                 }
-                
-                CertificateManager.InstallCertificate(clientCertificate, StoreName.My, StoreLocation.LocalMachine);
+
+                // TODO - Use Impersonification in CertificateManager to install certificate
+                //CertificateManager.InstallCertificate(clientCertificate, StoreName.My, StoreLocation.LocalMachine);
                 host.Credentials.ServiceCertificate.Certificate = clientCertificate;
                 
                 host.Open();
@@ -186,12 +182,14 @@ namespace ClientApp
                             // Install receiver's .pfx certificate in CurrentUser/TrustedPeople
                             string receiverCertificatePath = Path.Combine(projectDirectory, $"{receiver}.cer");
                             X509Certificate2 receiverCertificate = CertificateManager.GetCertificateFromFile(receiverCertificatePath);
-                            CertificateManager.InstallCertificate(receiverCertificate, StoreName.TrustedPeople, StoreLocation.LocalMachine);
+
+                            // TODO - Use Impersonification in CertificateManager to install certificate
+                            //CertificateManager.InstallCertificate(receiverCertificate, StoreName.TrustedPeople, StoreLocation.LocalMachine);
                             
                             EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5001 + receiverId}/{receiver}"),
                                                   new X509CertificateEndpointIdentity(receiverCertificate));
 
-                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress, username))
+                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress))
                             {
                                 chatProxy.Send(message);
                             }

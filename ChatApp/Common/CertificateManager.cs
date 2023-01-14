@@ -74,6 +74,43 @@ namespace Common
                     sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
                 }
             }
+
+            // TEMPORARY
+            // TODO - Delete after Impersonification is done
+
+            string pfxPath = Path.Combine(projectDirectory, $"{username}.pfx");
+            X509Certificate2 pfxCert = null;
+
+            while (pfxCert == null)
+            {
+                try
+                {
+                    pfxCert = GetCertificateFromFile(pfxPath);
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+
+            InstallCertificate(pfxCert, StoreName.My, StoreLocation.LocalMachine);
+
+            string cerPath = Path.Combine(projectDirectory, $"{username}.cer");
+            X509Certificate2 cerCert = null;
+
+            while (cerCert == null)
+            {
+                try
+                {
+                    cerCert = GetCertificateFromFile(cerPath);
+                }
+                catch (Exception)
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+
+            InstallCertificate(cerCert, StoreName.TrustedPeople, StoreLocation.LocalMachine);
         }
 
         public static void InstallCertificate(X509Certificate2 cert, StoreName storeName, StoreLocation storeLocation)
