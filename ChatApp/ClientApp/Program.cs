@@ -17,7 +17,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.ServiceModel.Security;
 using System.Net;
 
-
 namespace ClientApp
 {
     class Program
@@ -42,16 +41,8 @@ namespace ClientApp
             //Komunikacija sa Service
             using (ServiceProxy serviceProxy = new ServiceProxy(serviceBinding, new EndpointAddress(new Uri(serviceAddress))))
             {
-                string username = "";
-                User user = null;
-
-                while (user == null)
-                {
-                    Console.Write("Username: ");
-                    username = Console.ReadLine();
-
-                    user = serviceProxy.Connect(username);
-                }
+                string username = Common.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
+                User user = serviceProxy.Connect(username);
 
                 //Logging client connection
                 try

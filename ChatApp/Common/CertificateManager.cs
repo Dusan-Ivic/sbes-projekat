@@ -85,35 +85,6 @@ namespace Common
                 store.Close();
             }
         }
-        public static string ParseName(string winLogonName)
-        {
-            string[] parts = new string[] { };
-
-            if (winLogonName.Contains("@"))
-            {
-                ///UPN format
-                parts = winLogonName.Split('@');
-                return parts[0];
-            }
-            else if (winLogonName.Contains("\\"))
-            {
-                /// SPN format
-                parts = winLogonName.Split('\\');
-                return parts[1];
-            }
-            else if (winLogonName.Contains("CN"))
-            {
-                // sertifikati, name je formiran kao CN=imeKorisnika;
-                int startIndex = winLogonName.IndexOf("=") + 1;
-                int endIndex = winLogonName.IndexOf(";");
-                string s = winLogonName.Substring(startIndex, endIndex - startIndex);
-                return s;
-            }
-            else
-            {
-                return winLogonName;
-            }
-        }
 
         public static SecureString ConvertToSecureString(string str)
         {
