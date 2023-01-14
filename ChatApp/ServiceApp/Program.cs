@@ -22,19 +22,9 @@ namespace ServiceApp
             binding.Security.Transport.ClientCredentialType = TcpClientCredentialType.Windows;
             binding.Security.Transport.ProtectionLevel = System.Net.Security.ProtectionLevel.EncryptAndSign;
             
-
             ServiceHost host = new ServiceHost(typeof(Service));
-
             host.AddServiceEndpoint(typeof(IService), binding, address);
-                 
-            
-            const string sreviceCertCN = "serviceApp";     
-            host.Credentials.ServiceCertificate.Certificate = CertificateManager.GetCertificateFromStorage(
-                StoreName.My, StoreLocation.LocalMachine, sreviceCertCN);
-            if (host.Credentials.ServiceCertificate.Certificate==null)
-            {
-                CertificateManager.GenerateServiceCertificate();
-            }
+
             host.Open();
             Console.WriteLine("Service started...");
 
