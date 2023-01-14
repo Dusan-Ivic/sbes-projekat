@@ -89,22 +89,36 @@ namespace ClientApp
                 ServiceHost host = new ServiceHost(typeof(ChatService));
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
 
-                string srvCertCN = username;
-
                 host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
-
                 host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
 
                 string workingDirectory = Environment.CurrentDirectory;
                 string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
-                string certificatePath = Path.Combine(projectDirectory, $"{username}.pfx");
 
-                // Zakomentarisati ovo
-                host.Credentials.ServiceCertificate.Certificate = CertificateManager.GetCertificateFromFile(certificatePath);
+                // Install TestCA.cer certificate in CurrentUser/TrustedRoot
+                string testCertificatePath = Path.Combine(projectDirectory, "TestCA.cer");
+                X509Certificate2 testCertificate = CertificateManager.GetCertificateFromFile(testCertificatePath);
+                CertificateManager.InstallCertificate(testCertificate, StoreName.AuthRoot, StoreLocation.LocalMachine);
 
-                // Otkomentarisati ovo
-                //host.Credentials.ServiceCertificate.Certificate = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username);
+                // Install client's .pfx certificate in CurrentUser/Personal
+                string clientCertificatePath = Path.Combine(projectDirectory, $"{username}.pfx");
+                X509Certificate2 clientCertificate = null;
 
+                while (clientCertificate == null)
+                {
+                    try
+                    {
+                        clientCertificate = CertificateManager.GetCertificateFromFile(clientCertificatePath);
+                    }
+                    catch (Exception)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                }
+                
+                CertificateManager.InstallCertificate(clientCertificate, StoreName.My, StoreLocation.LocalMachine);
+                host.Credentials.ServiceCertificate.Certificate = clientCertificate;
+                
                 host.Open();
                 
                 bool isOnline = true;
@@ -177,20 +191,17 @@ namespace ClientApp
 
                             workingDirectory = Environment.CurrentDirectory;
                             projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
-                            certificatePath = Path.Combine(projectDirectory, $"{receiver}.pfx");
-
-                            // Zakomentarisati ovo
-                            X509Certificate2 receiverCert = CertificateManager.GetCertificateFromFile(certificatePath);
-
-                            // Otkomentarisati ovo
-                            //X509Certificate2 receiverCert = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, receiver);
+                            
+                            // Install receiver's .pfx certificate in CurrentUser/TrustedPeople
+                            string receiverCertificatePath = Path.Combine(projectDirectory, $"{receiver}.cer");
+                            X509Certificate2 receiverCertificate = CertificateManager.GetCertificateFromFile(receiverCertificatePath);
+                            CertificateManager.InstallCertificate(receiverCertificate, StoreName.TrustedPeople, StoreLocation.LocalMachine);
                             
                             EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5001 + receiverId}/{receiver}"),
-                                                  new X509CertificateEndpointIdentity(receiverCert));
+                                                  new X509CertificateEndpointIdentity(receiverCertificate));
 
                             using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress, username))
-                            {                 
-                                
+                            {
                                 chatProxy.Send(message);
                             }
                             

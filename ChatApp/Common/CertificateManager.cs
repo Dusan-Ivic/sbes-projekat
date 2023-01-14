@@ -47,76 +47,6 @@ namespace Common
             
         }
 
-        public static void GenerateServiceCertificate()
-        {
-            Process process = new Process();
-            ProcessStartInfo startInfo = new ProcessStartInfo();
-            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.FileName = "cmd.exe";
-            startInfo.RedirectStandardInput = true;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.CreateNoWindow = true;
-            startInfo.UseShellExecute = false;
-            // This will get the current WORKING directory (i.e. \bin\Debug)
-            string workingDirectory = Environment.CurrentDirectory;
-            // This will get the current PROJECT directory
-            string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
-            //startInfo.Arguments = $"/C cd{projectDirectory} ";
-            startInfo.WorkingDirectory = projectDirectory;
-            string certPath = Path.Combine(projectDirectory, $"serviceApp.pfx");
-            process.StartInfo = startInfo;
-            process.Start();
-
-            StreamWriter sw = process.StandardInput;
-            if (sw.BaseStream.CanWrite)
-            {
-                sw.WriteLine($"cd{projectDirectory} ");
-                sw.WriteLine("makecert -sv serviceApp.pvk -iv TestCA.pvk -n \"CN=serviceApp\" -pe -ic TestCA.cer serviceApp.cer " +
-                    "-sr localmachine -ss My -sky exchange");
-                // PASSWORD JE "FTN"
-                sw.WriteLine("pvk2pfx.exe /pvk serviceApp.pvk /pi ftn /spc serviceApp.cer /pfx serviceApp.pfx");
-            }
-            
-            // Install serviceApp.pfx in Personal storage
-
-            string path = Path.Combine(projectDirectory, "serviceApp.pfx");
-
-            X509Certificate2 cert = null;
-
-            while (cert == null)
-            {
-                try
-                {
-                    cert = GetCertificateFromFile(path);
-                }
-                catch (Exception)
-                {
-                    Thread.Sleep(1000);
-                }
-            }
-            
-            InstallCertificate(path, StoreName.My, StoreLocation.LocalMachine);
-
-            // Install serviceApp.cer in Trusted People storage
-
-            path = Path.Combine(projectDirectory, "serviceApp.cer");
-
-            cert = null;
-
-            while (cert == null)
-            {
-                try
-                {
-                    cert = GetCertificateFromFile(path);
-                }
-                catch (Exception)
-                {
-                    Thread.Sleep(1000);
-                }
-            }
-
-            InstallCertificate(path, StoreName.TrustedPeople, StoreLocation.LocalMachine);
-        }
         public static void GenerateClientCertificate(string username)
         {
             Process process = new Process();
@@ -135,41 +65,23 @@ namespace Common
             process.StartInfo = startInfo;
             process.Start();
 
-            StreamWriter sw = process.StandardInput;            
-            if (sw.BaseStream.CanWrite)
+            using (StreamWriter sw = process.StandardInput)
             {
-                sw.WriteLine($"makecert -sv {username}.pvk -iv TestCA.pvk -n \"CN={username}\" -pe -ic TestCA.cer {username}.cer " +
-                    "-sr localmachine -ss My -sky exchange");
-                sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
-            }
-
-            // Install client {username}.pfx in Personal storage
-
-            string path = Path.Combine(projectDirectory, $"{username}.pfx");
-
-            X509Certificate2 cert = null;
-
-            while (cert == null)
-            {
-                try
+                if (sw.BaseStream.CanWrite)
                 {
-                    cert = GetCertificateFromFile(path);
-                }
-                catch (Exception)
-                {
-                    Thread.Sleep(1000);
+                    sw.WriteLine($"makecert -sv {username}.pvk -iv TestCA.pvk -n \"CN={username}\" -pe -ic TestCA.cer {username}.cer " +
+                        "-sr localmachine -ss My -sky exchange");
+                    sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
                 }
             }
-
-            InstallCertificate(path, StoreName.My, StoreLocation.LocalMachine);
         }
 
-        public static void InstallCertificate(string path, StoreName storeName, StoreLocation storeLocation)
+        public static void InstallCertificate(X509Certificate2 cert, StoreName storeName, StoreLocation storeLocation)
         {
             using (X509Store store = new X509Store(storeName, storeLocation))
             {
                 store.Open(OpenFlags.ReadWrite);
-                store.Add(new X509Certificate2(path, "ftn"));
+                store.Add(cert);
                 store.Close();
             }
         }

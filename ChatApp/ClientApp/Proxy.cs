@@ -112,18 +112,11 @@ namespace ClientApp
         public ChatProxy(NetTcpBinding binding, EndpointAddress address, string username)
             : base(binding, address)
         {
-            this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = System.ServiceModel.Security.X509CertificateValidationMode.ChainTrust;
+            this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
             this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
-
-            // Zakomentarisati ovog
-            string workingDirectory = Environment.CurrentDirectory;
-            string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
-            string certificatePath = Path.Combine(projectDirectory, $"{username}.pfx");
             
-            this.Credentials.ClientCertificate.Certificate = CertificateManager.GetCertificateFromFile(certificatePath);
-
-            // Otkomentarisati ovog
-            //this.Credentials.ClientCertificate.Certificate = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username);
+            this.Credentials.ClientCertificate.Certificate
+                = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, username);
 
             factory = this.CreateChannel();
         }
