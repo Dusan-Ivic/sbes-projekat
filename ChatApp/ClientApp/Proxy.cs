@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.ServiceModel;
@@ -109,6 +110,9 @@ namespace ClientApp
     class ChatProxy : ChannelFactory<IChat>, IChat, IDisposable
     {
         private IChat factory;
+        private static EventLog customLog = null;
+        const string SourceName = "ClientApp.ChatProxy";
+        const string LogName = "MySecTest";
 
         public ChatProxy(NetTcpBinding binding, EndpointAddress address, X509Certificate2 certIssuer)
             : base(binding, address)
@@ -129,18 +133,41 @@ namespace ClientApp
             }
             catch (Exception e)
             {
-                if(clientCertificate.Issuer != "CN=TestCA")
+                EventLogging();
+                if (clientCertificate.Issuer != "CN=TestCA")
                 {
                     CertificateManager.ResetCertificate(clientCertificate);
+                    customLog.WriteEntry($"Certificate {clientCertificate.GetName().Remove(0, 3)} has been remade by different issuer {clientCertificate.Issuer}");
                 }
                 else
                 {
                     CertificateManager.ResetCertificate(certIssuer);
-                }
-                
+                    customLog.WriteEntry($"Certificate {certIssuer.GetName().Remove(0, 3)} has been remade by different issuer {certIssuer.Issuer}");
+                }                
                 Console.WriteLine(e);
                 this.Close();
             }          
+        }
+        public void EventLogging()
+        {            
+            try
+            {
+                if (!EventLog.SourceExists(SourceName))
+                {
+                    EventLog.CreateEventSource(SourceName, LogName);
+                }
+                customLog = new EventLog(LogName,
+                    Environment.MachineName, SourceName);
+            }
+            catch (Exception e)
+            {
+                customLog = null;
+                Console.WriteLine("Error while trying to create log handle. Error = {0}", e.Message);
+            }
+            if (customLog == null)
+            {
+                throw new ArgumentException(string.Format("Error while trying to write event (eventid = {0}) to event log."));
+            }
         }
 
         public void Dispose()
@@ -165,4 +192,5 @@ namespace ClientApp
             }
         }       
     }
+
 }

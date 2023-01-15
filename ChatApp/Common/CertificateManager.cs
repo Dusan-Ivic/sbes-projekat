@@ -106,18 +106,16 @@ namespace Common
         }
         public static void ResetCertificate(X509Certificate2 cert)
         {
-            X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
-            
+            X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine);            
             store.Open(OpenFlags.ReadWrite);
             store.Remove(cert);
             store.Close();
 
-            using (X509Store storeTP = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine)) 
-            {
-                storeTP.Open(OpenFlags.ReadWrite);
-                storeTP.Remove(cert);
-                storeTP.Close();
-            }
+            X509Store storeTP = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);             
+            storeTP.Open(OpenFlags.ReadWrite);
+            storeTP.Remove(cert);
+            storeTP.Close();
+            
             string path = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, @"Common\Certificates");
             string name = cert.GetName().Remove(0, 3);//jer pise "CN=pera"
             
