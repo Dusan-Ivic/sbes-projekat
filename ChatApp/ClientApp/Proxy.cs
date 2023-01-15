@@ -110,30 +110,37 @@ namespace ClientApp
     {
         private IChat factory;
 
-        public ChatProxy(NetTcpBinding binding, EndpointAddress address)
+        public ChatProxy(NetTcpBinding binding, EndpointAddress address, X509Certificate2 certIssuer)
             : base(binding, address)
         {
             string cltCertCN = Common.Formatter.ParseName(WindowsIdentity.GetCurrent().Name);
 
             this.Credentials.ServiceCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
-            this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.Offline;
+            this.Credentials.ServiceCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
             
             X509Certificate2 clientCertificate
                 = CertificateManager.GetCertificateFromStorage(StoreName.My, StoreLocation.LocalMachine, cltCertCN);
-
+            
             try
             {
-                ChainValidator.ValidateCert(clientCertificate);
+                ChainValidator.ValidateCert(clientCertificate, certIssuer);
                 this.Credentials.ClientCertificate.Certificate = clientCertificate;
                 factory = this.CreateChannel();
             }
             catch (Exception e)
             {
+                if(clientCertificate.Issuer != "CN=TestCA")
+                {
+                    CertificateManager.ResetCertificate(clientCertificate);
+                }
+                else
+                {
+                    CertificateManager.ResetCertificate(certIssuer);
+                }
+                
                 Console.WriteLine(e);
                 this.Close();
-            }
-            
-           
+            }          
         }
 
         public void Dispose()

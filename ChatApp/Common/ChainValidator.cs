@@ -9,14 +9,13 @@ namespace Common
 {
     public static class ChainValidator
     {
-        public static void ValidateCert(X509Certificate2 cert)
+        public static void ValidateCert(X509Certificate2 senderCert, X509Certificate2 receiverCert)
         {
-            X509Certificate2 authority = CertificateManager.GetCertificateFromStorage(StoreName.Root, StoreLocation.LocalMachine, "TestCA");
-            X509Certificate2 certificateToValidate = cert;
-            
-
+            X509Certificate2 authority = receiverCert;//pera
+            X509Certificate2 certificateToValidate = senderCert;
+    
             X509Chain chain = new X509Chain();
-            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.Offline;
             chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
             chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
             chain.ChainPolicy.VerificationTime = DateTime.Now;
@@ -39,7 +38,6 @@ namespace Common
                 {
                     certificateErrorsString = String.Join(", ", errors);
                 }
-
                 throw new Exception("Trust chain did not complete to the known authority anchor. Errors: " + certificateErrorsString);
             }
 

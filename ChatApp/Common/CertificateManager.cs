@@ -4,6 +4,7 @@ using System.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Diagnostics;
 using System.Threading;
+using System.Runtime.ConstrainedExecution;
 
 namespace Common
 {
@@ -49,10 +50,6 @@ namespace Common
 
         public static void GenerateClientCertificate(string username)
         {
-            if (username == "pera")
-            {
-                return;
-            }
             Process process = new Process();
             ProcessStartInfo startInfo = new ProcessStartInfo();
             startInfo.WindowStyle = ProcessWindowStyle.Hidden;
@@ -65,7 +62,6 @@ namespace Common
             string workingDirectory = Environment.CurrentDirectory;
             string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
             startInfo.WorkingDirectory = projectDirectory;
-            string certPath = Path.Combine(projectDirectory, $"{username}.pfx");
             process.StartInfo = startInfo;
             
             process.Start();
@@ -79,9 +75,6 @@ namespace Common
                     sw.WriteLine($"pvk2pfx.exe /pvk {username}.pvk /pi ftn /spc {username}.cer /pfx {username}.pfx");
                 }
             }
-
-            // TEMPORARY
-            // TODO - Delete after Impersonification is done
 
             string pfxPath = Path.Combine(projectDirectory, $"{username}.pfx");
             X509Certificate2 pfxCert = null;
@@ -100,22 +93,6 @@ namespace Common
 
             InstallCertificate(pfxCert, StoreName.My, StoreLocation.LocalMachine);
 
-            string cerPath = Path.Combine(projectDirectory, $"{username}.cer");
-            X509Certificate2 cerCert = null;
-
-            while (cerCert == null)
-            {
-                try
-                {
-                    cerCert = GetCertificateFromFile(cerPath);
-                }
-                catch (Exception)
-                {
-                    Thread.Sleep(1000);
-                }
-            }
-
-            InstallCertificate(cerCert, StoreName.TrustedPeople, StoreLocation.LocalMachine);
         }
 
         public static void InstallCertificate(X509Certificate2 cert, StoreName storeName, StoreLocation storeLocation)
@@ -126,6 +103,33 @@ namespace Common
                 store.Add(cert);
                 store.Close();
             }
+        }
+        public static void ResetCertificate(X509Certificate2 cert)
+        {
+            X509Store store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+            
+            store.Open(OpenFlags.ReadWrite);
+            store.Remove(cert);
+            store.Close();
+
+            using (X509Store storeTP = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine)) 
+            {
+                storeTP.Open(OpenFlags.ReadWrite);
+                storeTP.Remove(cert);
+                storeTP.Close();
+            }
+            string path = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).FullName, @"Common\Certificates");
+            string name = cert.GetName().Remove(0, 3);//jer pise "CN=pera"
+            
+            path = Path.Combine(path, $"{name}");
+            string cerPath = path + ".cer";
+            string pfxPath = path + ".pfx";
+            string pvkPath = path + ".pvk";
+            File.Delete(pfxPath);
+            File.Delete(pvkPath);
+            File.Delete(cerPath);
+            GenerateClientCertificate(name);
+
         }
 
         public static SecureString ConvertToSecureString(string str)

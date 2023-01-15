@@ -49,7 +49,7 @@ namespace ClientApp
                 host.AddServiceEndpoint(typeof(IChat), chatBinding, chatAddress);
 
                 host.Credentials.ClientCertificate.Authentication.CertificateValidationMode = X509CertificateValidationMode.ChainTrust;
-                host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.Offline;
+                host.Credentials.ClientCertificate.Authentication.RevocationMode = X509RevocationMode.NoCheck;
 
                 string workingDirectory = Environment.CurrentDirectory;
                 string projectDirectory = Path.Combine(Directory.GetParent(workingDirectory).FullName, @"Common\Certificates");
@@ -145,7 +145,7 @@ namespace ClientApp
                             EndpointAddress receiverAddress = new EndpointAddress(new Uri($"net.tcp://localhost:{5001 + receiverId}/{receiver}"),
                                                   new X509CertificateEndpointIdentity(receiverCertificate));
 
-                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress))
+                            using (ChatProxy chatProxy = new ChatProxy(chatBinding, receiverAddress, receiverCertificate))
                             {
                                 chatProxy.Send(message);
                             }
